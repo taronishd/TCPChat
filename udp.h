@@ -11,12 +11,14 @@
 using namespace std;
 
 class UDPClient{
-	int ServerFileDescriptor;
-	struct sockaddr_in ServerAddress;
+	int serverFileDescriptor;
+	struct sockaddr_in serverAddress;
+	int currentTO, maxTO;
+	int port;
 
 public:
-	void broadcast(int serverport);
-	UDPClient();
+	void broadcast();
+	UDPClient(int udpport, int initialto, int maxto);
 	~UDPClient();
 
 };//class UDPClient

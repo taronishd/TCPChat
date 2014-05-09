@@ -1,29 +1,31 @@
 //Taronish Daruwalla, 997447158
 
-#include<iostream>
-#include<stdio.h>
-#include<cstdlib>
-#include<csignal>
-#include<stdlib.h>
-#include<string>
-#include<cstring>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<sys/stat.h>
-#include<netinet/in.h>
-#include<dirent.h>
-#include<sys/poll.h>
-#include<vector>
-#include<sstream>
-#include<fcntl.h>
-#include"udp.h"
+#include <iostream>
+#include <stdio.h>
+#include <cstdlib>
+#include <csignal>
+#include <stdlib.h>
+#include <string>
+#include <cstring>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <dirent.h>
+#include <sys/poll.h>
+#include <vector>
+#include <sstream>
+#include <fcntl.h>
+#include "udp.h"
 #define BUFF_SIZE  514
 
 using namespace std;
 
 void parseParams(string &username,string &hostname,int &udpport,char *av[],
 	int &tcpport, int &initialto, int &maxto, int &hostport, int ac);
+
+
 
 int main(int argc, char *argv[]){
 	string userName, hostName;
@@ -32,7 +34,10 @@ int main(int argc, char *argv[]){
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
 
+	UDPClient udpClient(udpPort, initialTO, maxTO);
+	udpClient.broadcast();
 
+	return 0;
 }//main
 
 
