@@ -22,27 +22,34 @@
 
 using namespace std;
 
-void parseParams(string &username,string &hostname,int &udpport,char *av[],
-	int &tcpport, int &initialto, int &maxto, int &hostport, int ac);
+void parseParams(string &username ,string &hostname, uint16_t &udpport,
+	char *av[], uint16_t &tcpport, int &initialto, int &maxto, 
+	uint16_t &hostport, int ac);
 
 
 
 int main(int argc, char *argv[]){
 	string userName, hostName;
-	int udpPort = 50550, tcpPort = 50551, initialTO = 5, maxTO = 60, hostPort;
+	uint16_t udpPort = 50550, tcpPort = 50551, hostPort;
+	int initialTO = 5, maxTO = 60;
 
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
 
 	UDPClient udpClient(udpPort, initialTO, maxTO);
-	udpClient.broadcast();
+
+	while(1){
+		udpClient.broadcast(tcpPort);
+		sleep(4);
+	}
 
 	return 0;
 }//main
 
 
-void parseParams(string &username,string &hostname,int &udpport,char *av[],
-		int &tcpport, int &initialto, int &maxto, int &hostport, int ac){
+void parseParams(string &username, string &hostname, uint16_t &udpport,
+		char *av[], uint16_t &tcpport, int &initialto, int &maxto, 
+		uint16_t &hostport, int ac){
 	if(ac % 2 == 0){
 		cerr << "Incorrect parameter format" << endl;
 		exit(1);
