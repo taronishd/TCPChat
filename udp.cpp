@@ -20,7 +20,7 @@
 using namespace std;
 
 void UDPClient::broadcast(const uint16_t &tcpport){
-	int broadcastEnable = 1, setOptions, sentBuffer;
+	int broadcastEnable = 1, actualSize, setOptions, sentBuffer;
 	uint8_t *buffer = new uint8_t[512];
 	bzero(buffer, 512);
 	setOptions = setsockopt(serverFileDescriptor, SOL_SOCKET, SO_BROADCAST,
@@ -30,8 +30,8 @@ void UDPClient::broadcast(const uint16_t &tcpport){
 		close(serverFileDescriptor);
 		exit(1);
 	}
-	assembleBroadcast(buffer, tcpport);
-	sentBuffer = sendto(serverFileDescriptor, buffer, BUFF_SIZE, 0, 
+	actualSize = assembleBroadcast(buffer, tcpport);
+	sentBuffer = sendto(serverFileDescriptor, buffer, actualSize, 0, 
 		(struct sockaddr *)&serverAddress, sizeof(serverAddress));
 	if(sentBuffer < 0){
 		cerr << "Unable to call sendto()" << endl;
@@ -42,7 +42,7 @@ void UDPClient::broadcast(const uint16_t &tcpport){
 }
 
 
-void UDPClient::assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport){
+int UDPClient::assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport){
 	char *signature = "P2PI";
 	uint16_t type = 0x0001;
 	//uint8_t buffer[BUFF_SIZE];
@@ -66,6 +66,7 @@ void UDPClient::assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport){
 	buffer[10 + hostSize] = '\0';
 	memcpy(&(buffer[11 + hostSize]), username, unameSize);
 	buffer[11 + hostSize + unameSize] = '\0';
+	return 12 + hostSize + unameSize;
 }
 
 char* UDPClient::getUsername(int &size){

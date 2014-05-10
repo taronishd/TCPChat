@@ -19,7 +19,7 @@ class UDPClient{
 
 public:
 	void broadcast(const uint16_t &tcpport);
-	void assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport);
+	int assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport);
 	char* getUsername(int &size);
 	char* getHostname(int &size);
 	UDPClient(uint16_t udpport, int initialto, int maxto);
