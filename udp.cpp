@@ -91,6 +91,11 @@ char* UDPClient::getHostname(int &size){
 	return hname;
 }
 
+int UDPClient::getFD(){
+	return serverFileDescriptor;
+}
+
+
 UDPClient::UDPClient(uint16_t udpport, int initialto, int maxto){
 	serverFileDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if(serverFileDescriptor < 0){

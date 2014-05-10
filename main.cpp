@@ -22,26 +22,50 @@
 
 using namespace std;
 
-void parseParams(string &username ,string &hostname, uint16_t &udpport,
+void parseParams(string &username, string &hostname, uint16_t &udpport,
 	char *av[], uint16_t &tcpport, int &initialto, int &maxto, 
 	uint16_t &hostport, int ac);
 
+int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
+	const int &currentto);
 
 
 int main(int argc, char *argv[]){
 	string userName, hostName;
 	uint16_t udpPort = 50550, tcpPort = 50551, hostPort;
-	int initialTO = 5, maxTO = 60;
+	int initialTO = 5, maxTO = 60, nFDs = 1, pollResult;
+	int acceptedFD;
 
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
+	int currentTO = initialTO;
 
 	UDPClient udpClient(udpPort, initialTO, maxTO);
 
+	struct pollfd pollFDs[64];
+	bzero(pollFDs, sizeof(pollFDs));
+	pollFDs[0].fd = udpClient.getFD();
+	pollFDs[0].events = POLLIN;
+
 	while(1){
 		udpClient.broadcast(tcpPort);
-		sleep(4);
-	}
+		pollResult = pollAll(pollFDs, nFDs, acceptedFD, currentTO);
+		if(pollResult == -1)
+		{
+			close(udpClient.getFD());
+			exit(1);
+		}
+		if(pollResult == 0)
+		{
+			if(currentTO*2 > maxTO)
+				currentTO = maxTO;
+			else
+				currentTO *= 2;
+		}
+		if(pollResult == 1){
+			udpClient.parseMessage();
+		}
+	}//polling loop
 
 	return 0;
 }//main
@@ -86,3 +110,25 @@ void parseParams(string &username, string &hostname, uint16_t &udpport,
 
 	}
 }//parse parameters
+
+
+int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
+		const int &currentto){
+	cout << "Polling with timeout of " << currentto << " secs." << endl;
+	if(poll(pollfds, nfds, currentto*1000) < 0){
+		cout << "poll() failed..." << endl;
+		return -1;
+	}
+	if(pollfds[0].revents){
+		cout << "datagram received" << endl;
+		acceptedfd = accept(pollfds[0].fd, NULL, NULL);
+		pollfds[nfds].fd = acceptedfd;
+		pollfds[nfds].events = POLLIN;
+		nfds++;
+		return 1;
+	}
+	return 0;
+}
+
+
+
