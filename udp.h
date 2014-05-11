@@ -18,12 +18,15 @@ class UDPClient{
 	uint16_t port;
 
 public:
-	void broadcast(const uint16_t &tcpport);
-	int assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport);
+	void sendDatagram(const uint16_t &tcpport, uint16_t type, 
+		struct sockaddr_in clientaddr);
+	int assembleDatagram(uint8_t buffer[], const uint16_t &tcpport,
+		uint16_t type, struct sockaddr_in clientaddr);
 	char* getUsername(int &size);
 	char* getHostname(int &size);
 	int getFD();
-	void parseMessage(struct sockaddr_in &clientaddr);
+	struct sockaddr_in getServerAddress();
+	void parseMessage(struct sockaddr_in &clientaddr, uint16_t tcpport);
 	UDPClient(uint16_t udpport, int initialto, int maxto);
 	~UDPClient();
 

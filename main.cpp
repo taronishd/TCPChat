@@ -36,6 +36,7 @@ int main(int argc, char *argv[]){
 	int initialTO = 5, maxTO = 60, nFDs = 1, pollResult;
 	int acceptedFD, clientIndex = 0;
 	struct sockaddr_in clientAddrs[64];
+	bool gotBro = false;
 
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
@@ -49,7 +50,8 @@ int main(int argc, char *argv[]){
 	pollFDs[0].events = POLLIN;
 
 	while(1){
-		udpClient.broadcast(tcpPort);
+		if(!gotBro)
+			udpClient.sendDatagram(tcpPort, 0x0001, udpClient.getServerAddress());
 		pollResult = pollAll(pollFDs, nFDs, acceptedFD, currentTO);
 		if(pollResult == -1)
 		{
@@ -64,7 +66,8 @@ int main(int argc, char *argv[]){
 				currentTO *= 2;
 		}
 		if(pollResult == 1){
-			udpClient.parseMessage(clientAddrs[clientIndex]);
+			gotBro = true;
+			udpClient.parseMessage(clientAddrs[clientIndex], tcpPort);
 			clientIndex++;
 		}
 	}//polling loop

@@ -19,20 +19,29 @@
 
 using namespace std;
 
-void UDPClient::broadcast(const uint16_t &tcpport){
+void UDPClient::sendDatagram(const uint16_t &tcpport, uint16_t type,
+		struct sockaddr_in clientaddr){
 	int broadcastEnable = 1, actualSize, setOptions, sentBuffer;
 	uint8_t *buffer = new uint8_t[512];
 	bzero(buffer, 512);
-	setOptions = setsockopt(serverFileDescriptor, SOL_SOCKET, SO_BROADCAST,
-		&broadcastEnable, sizeof(broadcastEnable));
-	if(setOptions < 0){
-		cerr << "Unable to set socket options." << endl;
-		close(serverFileDescriptor);
-		exit(1);
+	if(type == 0x0001){
+		setOptions = setsockopt(serverFileDescriptor, SOL_SOCKET, SO_BROADCAST,
+			&broadcastEnable, sizeof(broadcastEnable));
+		if(setOptions < 0){
+			cerr << "Unable to set socket options." << endl;
+			close(serverFileDescriptor);
+			exit(1);
+		}
+	}//if broadcast, set options
+	actualSize = assembleDatagram(buffer, tcpport, type, clientaddr);
+	if(type == 0x0001){
+		sentBuffer = sendto(serverFileDescriptor, buffer, actualSize, 0, 
+			(struct sockaddr *)&serverAddress, sizeof(serverAddress));
 	}
-	actualSize = assembleBroadcast(buffer, tcpport);
-	sentBuffer = sendto(serverFileDescriptor, buffer, actualSize, 0, 
-		(struct sockaddr *)&serverAddress, sizeof(serverAddress));
+	else{
+		sentBuffer = sendto(serverFileDescriptor, buffer, actualSize, 0, 
+			(struct sockaddr *)&clientaddr, sizeof(clientaddr));
+	}
 	if(sentBuffer < 0){
 		cerr << "Unable to call sendto()" << endl;
 		close(serverFileDescriptor);
@@ -42,9 +51,9 @@ void UDPClient::broadcast(const uint16_t &tcpport){
 }
 
 
-int UDPClient::assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport){
+int UDPClient::assembleDatagram(uint8_t buffer[], const uint16_t &tcpport,
+		uint16_t type, struct sockaddr_in clientaddr){
 	const char *signature = "P2PI";
-	uint16_t type = 0x0001;
 	//uint8_t buffer[BUFF_SIZE];
 	int unameSize, hostSize;
 	char *username = new char[64];
@@ -95,7 +104,12 @@ int UDPClient::getFD(){
 	return serverFileDescriptor;
 }
 
-void UDPClient::parseMessage(struct sockaddr_in &clientaddr){
+struct sockaddr_in UDPClient::getServerAddress(){
+	return serverAddress;
+}
+
+void UDPClient::parseMessage(struct sockaddr_in &clientaddr, 
+		uint16_t tcpport){
 	socklen_t clientLength = sizeof(clientaddr);
 	uint8_t buffer[BUFF_SIZE];
 	int filledBuffer = recvfrom(serverFileDescriptor, buffer, BUFF_SIZE, 0,
@@ -106,11 +120,14 @@ void UDPClient::parseMessage(struct sockaddr_in &clientaddr){
 		exit(1);
 	}//in case recvfrom fails
 	uint8_t type = buffer[5];
-	if(type == 0x01)
-		cout << "one!" << endl;
-	if(type == 0x02)
-		cout << "two!" << endl;
+	if(type == 0x01){
+		sendDatagram(tcpport, 0x0002, clientaddr);
+	}
+	if(type == 0x02){
+		cout << "Got reply." << endl;
+	}
 }
+
 
 
 UDPClient::UDPClient(uint16_t udpport, int initialto, int maxto){
