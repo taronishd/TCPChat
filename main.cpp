@@ -18,6 +18,7 @@
 #include <sstream>
 #include <fcntl.h>
 #include "udp.h"
+#include "tcp.h"
 #define BUFF_SIZE  514
 
 using namespace std;
@@ -42,7 +43,8 @@ int main(int argc, char *argv[]){
 		maxTO, hostPort, argc);
 	int currentTO = initialTO;
 
-	UDPClient udpClient(udpPort, initialTO, maxTO);
+	UDPClient udpClient(udpPort);
+	TCPServer tcpServer(tcpPort);
 
 	struct pollfd pollFDs[64];
 	bzero(pollFDs, sizeof(pollFDs));

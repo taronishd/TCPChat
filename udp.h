@@ -14,7 +14,6 @@ using namespace std;
 class UDPClient{
 	int serverFileDescriptor;
 	struct sockaddr_in serverAddress;
-	int currentTO, maxTO;
 	uint16_t port;
 
 public:
@@ -27,7 +26,7 @@ public:
 	int getFD();
 	struct sockaddr_in getServerAddress();
 	void parseMessage(struct sockaddr_in &clientaddr, uint16_t tcpport);
-	UDPClient(uint16_t udpport, int initialto, int maxto);
+	UDPClient(uint16_t udpport);
 	~UDPClient();
 
 };//class UDPClient
