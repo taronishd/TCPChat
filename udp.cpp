@@ -43,7 +43,7 @@ void UDPClient::broadcast(const uint16_t &tcpport){
 
 
 int UDPClient::assembleBroadcast(uint8_t buffer[], const uint16_t &tcpport){
-	char *signature = "P2PI";
+	const char *signature = "P2PI";
 	uint16_t type = 0x0001;
 	//uint8_t buffer[BUFF_SIZE];
 	int unameSize, hostSize;
@@ -95,6 +95,23 @@ int UDPClient::getFD(){
 	return serverFileDescriptor;
 }
 
+void UDPClient::parseMessage(struct sockaddr_in &clientaddr){
+	socklen_t clientLength = sizeof(clientaddr);
+	uint8_t buffer[BUFF_SIZE];
+	int filledBuffer = recvfrom(serverFileDescriptor, buffer, BUFF_SIZE, 0,
+		(struct sockaddr *)&clientaddr, &clientLength);
+	if(filledBuffer < 0){
+		cerr << "Unable to call recvfrom()" << endl;
+		close(serverFileDescriptor);
+		exit(1);
+	}//in case recvfrom fails
+	uint8_t type = buffer[5];
+	if(type == 0x01)
+		cout << "one!" << endl;
+	if(type == 0x02)
+		cout << "two!" << endl;
+}
+
 
 UDPClient::UDPClient(uint16_t udpport, int initialto, int maxto){
 	serverFileDescriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -105,6 +122,13 @@ UDPClient::UDPClient(uint16_t udpport, int initialto, int maxto){
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 	serverAddress.sin_port = htons(udpport);
+	int goodBind = bind(serverFileDescriptor, 
+		(struct sockaddr *)&serverAddress, sizeof(serverAddress));
+	if(goodBind < 0){
+		cout << "Error binding UDP socket" << endl;
+		close(serverFileDescriptor);
+		exit(1);
+	}
 	port = udpport;
 	currentTO = initialto;
 	maxTO = maxto;

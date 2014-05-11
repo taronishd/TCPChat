@@ -23,6 +23,7 @@ public:
 	char* getUsername(int &size);
 	char* getHostname(int &size);
 	int getFD();
+	void parseMessage(struct sockaddr_in &clientaddr);
 	UDPClient(uint16_t udpport, int initialto, int maxto);
 	~UDPClient();
 

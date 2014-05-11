@@ -34,7 +34,8 @@ int main(int argc, char *argv[]){
 	string userName, hostName;
 	uint16_t udpPort = 50550, tcpPort = 50551, hostPort;
 	int initialTO = 5, maxTO = 60, nFDs = 1, pollResult;
-	int acceptedFD;
+	int acceptedFD, clientIndex = 0;
+	struct sockaddr_in clientAddrs[64];
 
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
@@ -63,7 +64,8 @@ int main(int argc, char *argv[]){
 				currentTO *= 2;
 		}
 		if(pollResult == 1){
-			udpClient.parseMessage();
+			udpClient.parseMessage(clientAddrs[clientIndex]);
+			clientIndex++;
 		}
 	}//polling loop
 
