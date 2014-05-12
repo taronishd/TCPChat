@@ -17,7 +17,11 @@ class TCPServer{
 	uint16_t port;
 
 public:
-	
+	int getFD();
+	void establishConnection(struct sockaddr_in clientaddr);
+	int assembleSegment(uint8_t buffer[], uint16_t type);
+	char* getUsername(int &size);
+	char* getHostname(int &size);
 	TCPServer(uint16_t tcpport);
 	~TCPServer();
 };

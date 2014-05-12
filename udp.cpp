@@ -20,7 +20,7 @@
 using namespace std;
 
 void UDPClient::sendDatagram(const uint16_t &tcpport, uint16_t type,
-		struct sockaddr_in clientaddr){
+		struct sockaddr_in clientaddr, bool isBroadcast){
 	int broadcastEnable = 1, actualSize, setOptions, sentBuffer;
 	uint8_t *buffer = new uint8_t[512];
 	bzero(buffer, 512);
@@ -34,7 +34,7 @@ void UDPClient::sendDatagram(const uint16_t &tcpport, uint16_t type,
 		}
 	}//if broadcast, set options
 	actualSize = assembleDatagram(buffer, tcpport, type, clientaddr);
-	if(type == 0x0001){
+	if(type == 0x0001 && isBroadcast){
 		sentBuffer = sendto(serverFileDescriptor, buffer, actualSize, 0, 
 			(struct sockaddr *)&serverAddress, sizeof(serverAddress));
 	}
@@ -108,7 +108,7 @@ struct sockaddr_in UDPClient::getServerAddress(){
 	return serverAddress;
 }
 
-void UDPClient::parseMessage(struct sockaddr_in &clientaddr, 
+int UDPClient::parseMessage(struct sockaddr_in &clientaddr, 
 		uint16_t tcpport){
 	socklen_t clientLength = sizeof(clientaddr);
 	uint8_t buffer[BUFF_SIZE];
@@ -120,12 +120,21 @@ void UDPClient::parseMessage(struct sockaddr_in &clientaddr,
 		exit(1);
 	}//in case recvfrom fails
 	uint8_t type = buffer[5];
+	cout << "got a datagram" << endl;
 	if(type == 0x01){
-		sendDatagram(tcpport, 0x0002, clientaddr);
+		sendDatagram(tcpport, 0x0002, clientaddr, false);
+		cout << "Got discovery" << endl;
+		return 1;
 	}
 	if(type == 0x02){
 		cout << "Got reply." << endl;
+		return 2;
 	}
+	if(type == 0x03){
+		cout << "Got closing msg." << endl;
+		return 3;
+	}
+	return -1;
 }
 
 

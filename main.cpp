@@ -17,6 +17,7 @@
 #include <vector>
 #include <sstream>
 #include <fcntl.h>
+#include <arpa/inet.h>
 #include "udp.h"
 #include "tcp.h"
 #define BUFF_SIZE  514
@@ -30,13 +31,20 @@ void parseParams(string &username, string &hostname, uint16_t &udpport,
 int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 	const int &currentto);
 
+struct sockaddr_in getHostName(const char *hostname);
+
+typedef struct{
+	struct sockaddr_in address;
+	char *userName;
+}tcpClient;
+
 
 int main(int argc, char *argv[]){
 	string userName, hostName;
-	uint16_t udpPort = 50550, tcpPort = 50551, hostPort;
-	int initialTO = 5, maxTO = 60, nFDs = 1, pollResult;
-	int acceptedFD, clientIndex = 0;
-	struct sockaddr_in clientAddrs[64];
+	uint16_t udpPort = 50550, tcpPort = 50551, hostPort = -1;
+	int initialTO = 5, maxTO = 60, nFDs = 2, pollResult;
+	int acceptedFD, clientIndex = 0, type;
+	tcpClient clients[64];
 	bool gotBro = false;
 
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
@@ -44,16 +52,31 @@ int main(int argc, char *argv[]){
 	int currentTO = initialTO;
 
 	UDPClient udpClient(udpPort);
+	if(hostPort != -1){
+		new (&udpClient) UDPClient(hostPort);
+	}
 	TCPServer tcpServer(tcpPort);
 
 	struct pollfd pollFDs[64];
 	bzero(pollFDs, sizeof(pollFDs));
 	pollFDs[0].fd = udpClient.getFD();
 	pollFDs[0].events = POLLIN;
+	pollFDs[1].fd = tcpServer.getFD();
+	pollFDs[1].events = POLLIN;
+	listen(tcpServer.getFD(), 16);
 
 	while(1){
-		if(!gotBro)
-			udpClient.sendDatagram(tcpPort, 0x0001, udpClient.getServerAddress());
+		if(!gotBro){
+			//To send unicast discovery b/c of -pp, or broadcast
+			if(hostPort == -1){
+				udpClient.sendDatagram(tcpPort, 0x0001, 
+					udpClient.getServerAddress(), true);
+			}
+			else{
+				udpClient.sendDatagram(tcpPort, 0x0001, 
+					getHostName(hostName.c_str()), false);
+			}
+		}
 		pollResult = pollAll(pollFDs, nFDs, acceptedFD, currentTO);
 		if(pollResult == -1)
 		{
@@ -67,10 +90,18 @@ int main(int argc, char *argv[]){
 			else
 				currentTO *= 2;
 		}
+		//got a unicast UDP datagram discovery or reply
 		if(pollResult == 1){
-			gotBro = true;
-			udpClient.parseMessage(clientAddrs[clientIndex], tcpPort);
+			type = udpClient.parseMessage(clients[clientIndex].address, tcpPort);
+			//if(type == 2){
+				gotBro = true;
+			//}
+			//tcpServer.establishConnection(clients[clientIndex].address);
 			clientIndex++;
+		}
+		//received a TCP segment
+		if(pollResult == 2){
+
 		}
 	}//polling loop
 
@@ -126,6 +157,10 @@ int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 		cout << "poll() failed..." << endl;
 		return -1;
 	}
+	if(pollfds[0].revents && pollfds[1].revents){
+		cout << "UDP datagram and TCP segment recieved." << endl;
+		return 3;
+	}
 	if(pollfds[0].revents){
 		cout << "datagram received" << endl;
 		acceptedfd = accept(pollfds[0].fd, NULL, NULL);
@@ -134,8 +169,19 @@ int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 		nfds++;
 		return 1;
 	}
+	if(pollfds[1].revents){
+		cout << "TCP segment recieved" << endl;
+		return 2;
+	}
 	return 0;
 }
 
 
+struct sockaddr_in getHostName(const char *hostname){
+	//struct in_addr addr;
+	//inet_aton(hostname, &addr);
+	struct sockaddr_in temp;
+	//temp = (struct Sockaddr_in)addr;
+	return temp;
+}
 
