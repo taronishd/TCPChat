@@ -120,7 +120,7 @@ int UDPClient::parseMessage(struct sockaddr_in &clientaddr,
 		exit(1);
 	}//in case recvfrom fails
 	uint8_t type = buffer[5];
-	cout << "got a datagram" << endl;
+	cout << "got a datagram:" << endl;
 	if(type == 0x01){
 		sendDatagram(tcpport, 0x0002, clientaddr, false);
 		cout << "Got discovery" << endl;

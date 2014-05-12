@@ -27,10 +27,9 @@ using namespace std;
 void parseParams(string &username, string &hostname, uint16_t &udpport,
 	char *av[], uint16_t &tcpport, int &initialto, int &maxto, 
 	uint16_t &hostport, int ac);
-
 int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 	const int &currentto);
-
+void sigIntHandler(int param);
 struct sockaddr_in getHostName(const char *hostname);
 
 typedef struct{
@@ -38,6 +37,7 @@ typedef struct{
 	char *userName;
 }tcpClient;
 
+bool timeToClose = false;
 
 int main(int argc, char *argv[]){
 	string userName, hostName;
@@ -50,6 +50,8 @@ int main(int argc, char *argv[]){
 	parseParams(userName, hostName, udpPort, argv, tcpPort, initialTO,
 		maxTO, hostPort, argc);
 	int currentTO = initialTO;
+
+	signal(SIGINT, sigIntHandler);
 
 	UDPClient udpClient(udpPort);
 	if(hostPort != -1){
@@ -68,7 +70,8 @@ int main(int argc, char *argv[]){
 	while(1){
 		if(!gotBro){
 			//To send unicast discovery b/c of -pp, or broadcast
-			if(hostPort == -1){
+			//cout << "host port : " << hostPort << endl;
+			if(hostPort == 65535){
 				udpClient.sendDatagram(tcpPort, 0x0001, 
 					udpClient.getServerAddress(), true);
 			}
@@ -76,6 +79,14 @@ int main(int argc, char *argv[]){
 				udpClient.sendDatagram(tcpPort, 0x0001, 
 					getHostName(hostName.c_str()), false);
 			}
+		}
+		if(timeToClose){
+			cout << "Closing..." << endl;
+			udpClient.sendDatagram(tcpPort, 0x0003, udpClient.getServerAddress(),
+				false);
+			close(udpClient.getFD());
+			close(tcpServer.getFD());
+			exit(0);
 		}
 		pollResult = pollAll(pollFDs, nFDs, acceptedFD, currentTO);
 		if(pollResult == -1)
@@ -162,7 +173,7 @@ int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 		return 3;
 	}
 	if(pollfds[0].revents){
-		cout << "datagram received" << endl;
+		//cout << "datagram received" << endl;
 		acceptedfd = accept(pollfds[0].fd, NULL, NULL);
 		pollfds[nfds].fd = acceptedfd;
 		pollfds[nfds].events = POLLIN;
@@ -185,3 +196,10 @@ struct sockaddr_in getHostName(const char *hostname){
 	return temp;
 }
 
+
+void sigIntHandler(int param){
+	cout << "in handler";
+	if(param == SIGINT){
+		timeToClose = true;		
+	}
+}
