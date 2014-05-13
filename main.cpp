@@ -100,6 +100,9 @@ int main(int argc, char *argv[]){
 				currentTO = maxTO;
 			else
 				currentTO *= 2;
+			//close(udpClient.getFD());
+			//close(tcpServer.getFD());
+			//exit(0);
 		}
 		//got a unicast UDP datagram discovery or reply
 		if(pollResult == 1){
@@ -165,14 +168,14 @@ int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 		const int &currentto){
 	cout << "Polling with timeout of " << currentto << " secs." << endl;
 	if(poll(pollfds, nfds, currentto*1000) < 0){
-		cout << "poll() failed..." << endl;
-		return -1;
+		//cout << "poll() failed..." << endl;
+		//return -1;
 	}
 	if(pollfds[0].revents && pollfds[1].revents){
 		cout << "UDP datagram and TCP segment recieved." << endl;
 		return 3;
 	}
-	if(pollfds[0].revents){
+	if(pollfds[0].revents & POLLIN){
 		//cout << "datagram received" << endl;
 		acceptedfd = accept(pollfds[0].fd, NULL, NULL);
 		pollfds[nfds].fd = acceptedfd;
@@ -180,7 +183,7 @@ int pollAll(struct pollfd pollfds[], int &nfds, int &acceptedfd,
 		nfds++;
 		return 1;
 	}
-	if(pollfds[1].revents){
+	if(pollfds[1].revents & POLLIN){
 		cout << "TCP segment recieved" << endl;
 		return 2;
 	}
